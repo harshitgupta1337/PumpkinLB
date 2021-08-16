@@ -1,6 +1,10 @@
 PumpkinLB
 =========
 
+** Testing for EPL ** 
+
+Execute the script `test-http-lb.sh`
+
 
 PumpkinLB is a fast multi-process TCP load balancer / port forwarder, compatible with: Linux, Cygwin, and Windows environments.
 
