@@ -11,6 +11,7 @@ import sys
 import signal
 import time
 import threading
+import random
 
 from .log import logmsg, logerr
 from .worker import PumpkinWorker
@@ -171,23 +172,41 @@ class PumpkinListener(multiprocessing.Process):
 
         try:
             while self.keepGoing is True:
-                for workerInfo in self.workers:
-                    if self.keepGoing is False:
-                        break
-                    try:
-                        (clientConnection, clientAddr) = listenSocket.accept()
-                    except:
-                        logerr('Cannot bind to %s:%s\n' %(self.localAddr, self.localPort))
-                        if self.keepGoing is True:
-                            # Exception did not come from termination process, so keep rollin'
-                            time.sleep(3)
-                            continue
-                        
-                        raise # Termination DID come from termination process, so abort.
+                try:
+                    (clientConnection, clientAddr) = listenSocket.accept()
+                except:
+                    logerr('Cannot bind to %s:%s\n' %(self.localAddr, self.localPort))
+                    if self.keepGoing is True:
+                        # Exception did not come from termination process, so keep rollin'
+                        time.sleep(3)
+                        continue
+                    
+                    raise # Termination DID come from termination process, so abort.
+    
+                workerInfo = self.workers[random.randrange(0, len(self.workers))]
+                worker = PumpkinWorker(clientConnection, clientAddr, workerInfo['addr'], workerInfo['port'], self.bufferSize)
+                self.activeWorkers.append(worker)
+                worker.start()
 
-                    worker = PumpkinWorker(clientConnection, clientAddr, workerInfo['addr'], workerInfo['port'], self.bufferSize)
-                    self.activeWorkers.append(worker)
-                    worker.start()
+            #for workerInfo in self.workers:
+            #        if self.keepGoing is False:
+            #            break
+            #        try:
+            #            logerr("Waiting for connection")
+            #            (clientConnection, clientAddr) = listenSocket.accept()
+            #            logerr("Connection accepted")
+            #        except:
+            #            logerr('Cannot bind to %s:%s\n' %(self.localAddr, self.localPort))
+            #            if self.keepGoing is True:
+            #                # Exception did not come from termination process, so keep rollin'
+            #                time.sleep(3)
+            #                continue
+            #            
+            #            raise # Termination DID come from termination process, so abort.
+
+            #        worker = PumpkinWorker(clientConnection, clientAddr, workerInfo['addr'], workerInfo['port'], self.bufferSize)
+            #        self.activeWorkers.append(worker)
+            #        worker.start()
         except Exception as e:
             logerr('Got exception: %s, shutting down workers on %s:%d\n' %(str(e), self.localAddr, self.localPort))
             self.closeWorkers()
